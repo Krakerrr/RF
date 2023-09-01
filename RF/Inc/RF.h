@@ -28,19 +28,20 @@
 											HAL_NVIC_EnableIRQ(USART2_IRQn); \
 										} while(0U)
 
-#define RF_DOWNLINKBYTESIZE			60
-
+#define RF_DATASIZE					60
+#define RF_DATAPAYLOADSIZE			56
+#define RF_HEADER					0x60;
 
 typedef enum
 {
     TX_completed	= 0,
-	TX_started  	= 1
+	TX_started
 }RF_TXstatus_ENUM;
 
 typedef struct
 {
-	uint8_t                         sendata[RF_DOWNLINKBYTESIZE];
-	RF_TXstatus_ENUM				TXstatus;
+	uint8_t                 sendata[RF_DATASIZE];
+	RF_TXstatus_ENUM		TXstatus;
 }sRF_data;
 
 extern sRF_data RF_data;
@@ -50,7 +51,8 @@ void RF_GPIOInit(UART_HandleTypeDef *huart);
 void RF_TX_START_IT();
 void RF_SendMsg(char *format,...);
 void RF_TxCpltCallback(UART_HandleTypeDef *huart);
-
+void RF_SendDATA(uint8_t* sendata);
+uint16_t calculateCRC(void);
 
 UART_HandleTypeDef hRF;
 

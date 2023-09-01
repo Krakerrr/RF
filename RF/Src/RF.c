@@ -7,6 +7,37 @@
 
 #include "RF.h"
 
+void RF_SendDATA(uint8_t* sendata)
+{
+	uint16_t CRCval;
+	if( RF_data.TXstatus == TX_completed)
+	{
+		// len + header
+		RF_data.sendata[0] = RF_DATASIZE;
+		RF_data.sendata[1] = RF_HEADER;
+
+		// payload
+		memcpy( &RF_data.sendata[2], sendata, RF_DATAPAYLOADSIZE);
+
+		// CRC
+		CRCval = calculateCRC();
+		RF_data.sendata[RF_DATASIZE-2] = (uint8_t) (CRCval & 0xFF);
+		RF_data.sendata[RF_DATASIZE-1] = (uint8_t) (CRCval >> 8);
+
+		// send data
+		RF_TX_START_IT();
+	}
+}
+
+uint16_t calculateCRC(void)
+{
+	uint16_t CRCval;
+	CRCval = 0;
+	for (uint8_t i = 0; i < RF_DATAPAYLOADSIZE+2; ++i) {
+		CRCval += RF_data.sendata[i];
+	}
+	return CRCval;
+}
 
 void RF_TxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -15,7 +46,7 @@ void RF_TxCpltCallback(UART_HandleTypeDef *huart)
 
 void RF_TX_START_IT()
 {
-	if( HAL_UART_Transmit_IT(&hRF, (&RF_data)->sendata, RF_DOWNLINKBYTESIZE) != HAL_OK)
+	if( HAL_UART_Transmit_IT(&hRF, (&RF_data)->sendata, RF_DATASIZE) != HAL_OK)
 	{
 		RF_SendMsg("Error in RF_TX_START_IT\r\n");
 	}
