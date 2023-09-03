@@ -7,46 +7,46 @@
 
 #include "RF.h"
 
-void RF_SendDATA(uint8_t* sendata)
+void RF_SendTelemetryDATA()
 {
 	uint16_t CRCval;
 	if( RF_data.TXstatus == TX_completed)
 	{
 		// len + header
-		RF_data.sendata[0] = RF_DATASIZE;
-		RF_data.sendata[1] = RF_HEADER;
-
-		// payload
-		memcpy( &RF_data.sendata[2], sendata, RF_DATAPAYLOADSIZE);
+		RF_data.telemetrydata[0] = RF_DATASIZE;
+		RF_data.telemetrydata[1] = RF_DATAHEADER;
 
 		// CRC
-		CRCval = calculateCRC();
-		RF_data.sendata[RF_DATASIZE-2] = (uint8_t) (CRCval & 0xFF);
-		RF_data.sendata[RF_DATASIZE-1] = (uint8_t) (CRCval >> 8);
+		CRCval = RF_CalculateCRC();
+		RF_data.telemetrydata[RF_DATASIZE-2] = (uint8_t) (CRCval & 0xFF);
+		RF_data.telemetrydata[RF_DATASIZE-1] = (uint8_t) (CRCval >> 8);
 
 		// send data
 		RF_TX_START_IT();
 	}
 }
 
-uint16_t calculateCRC(void)
+uint16_t RF_CalculateCRC(void)
 {
 	uint16_t CRCval;
 	CRCval = 0;
 	for (uint8_t i = 0; i < RF_DATAPAYLOADSIZE+2; ++i) {
-		CRCval += RF_data.sendata[i];
+		CRCval += RF_data.telemetrydata[i];
 	}
 	return CRCval;
 }
 
 void RF_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-	RF_data.TXstatus = TX_completed;
+	if(huart->Instance == RF_CHANNEL)
+	{
+		RF_data.TXstatus = TX_completed;
+	}
 }
 
 void RF_TX_START_IT()
 {
-	if( HAL_UART_Transmit_IT(&hRF, (&RF_data)->sendata, RF_DATASIZE) != HAL_OK)
+	if( HAL_UART_Transmit_IT(&hRF, (&RF_data)->telemetrydata, RF_DATASIZE) != HAL_OK)
 	{
 		RF_SendMsg("Error in RF_TX_START_IT\r\n");
 	}
@@ -56,23 +56,30 @@ void RF_TX_START_IT()
 void RF_SendMsg(char *format,...)
 {
 	char str[40];
+	char sendata[40];
 	uint16_t str_size;
+
+	sprintf(sendata,"%d%d ",strlen(format)+3,RF_MSGHEADER);
+	strcat(sendata, format);
 
 	/*Extract the the argument list using VA apis */
 	va_list args;
 	va_start(args, format);
-	vsprintf(str, format,args);
+	vsprintf(str, sendata,args);
+	va_end(args);
 
 	str_size = strlen(str);
 	if( HAL_UART_Transmit(&hRF,(uint8_t *)str, str_size, (uint32_t)(str_size/10 + 2 )) != HAL_OK)
 	{
 		Error_Handler();
 	}
-	va_end(args);
 }
 
 void RF_Init(void)
 {
+	RF_data.payload_address = &RF_data.telemetrydata[2];
+	RF_data.TXstatus = TX_completed;
+
 	hRF.Instance 			= RF_CHANNEL;
 	hRF.Init.BaudRate		= RF_BAUDRATE;
 	hRF.Init.WordLength 	= UART_WORDLENGTH_8B;

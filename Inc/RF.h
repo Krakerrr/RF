@@ -24,13 +24,14 @@
 											__HAL_RCC_GPIOD_CLK_ENABLE(); \
 										} while(0U)
 #define __RF_NVIC_ENABLE()   		do { \
-											HAL_NVIC_SetPriority(USART2_IRQn, 15, 0); \
+											HAL_NVIC_SetPriority(USART2_IRQn, 10, 0); \
 											HAL_NVIC_EnableIRQ(USART2_IRQn); \
 										} while(0U)
 
 #define RF_DATASIZE					60
 #define RF_DATAPAYLOADSIZE			56
-#define RF_HEADER					0x60;
+#define RF_DATAHEADER				0x60
+#define RF_MSGHEADER				0x55
 
 typedef enum
 {
@@ -40,19 +41,20 @@ typedef enum
 
 typedef struct
 {
-	uint8_t                 sendata[RF_DATASIZE];
+	uint8_t                 telemetrydata[RF_DATASIZE];
+	uint8_t*				payload_address;
 	RF_TXstatus_ENUM		TXstatus;
-}sRF_data;
+}sRF;
 
-extern sRF_data RF_data;
+extern sRF RF_data;
 
 void RF_Init(void);
 void RF_GPIOInit(UART_HandleTypeDef *huart);
 void RF_TX_START_IT();
 void RF_SendMsg(char *format,...);
 void RF_TxCpltCallback(UART_HandleTypeDef *huart);
-void RF_SendDATA(uint8_t* sendata);
-uint16_t calculateCRC(void);
+void RF_SendTelemetryDATA(void);
+uint16_t RF_CalculateCRC(void);
 
 UART_HandleTypeDef hRF;
 
