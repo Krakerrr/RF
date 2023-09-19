@@ -46,7 +46,7 @@ void RF_TxCpltCallback(UART_HandleTypeDef *huart)
 
 void RF_TX_START_IT()
 {
-	if( HAL_UART_Transmit_IT(&hRF, (&RF_data)->telemetrydata, RF_DATASIZE) != HAL_OK)
+	if( HAL_UART_Transmit_DMA(&hRF, (&RF_data)->telemetrydata, RF_DATASIZE) != HAL_OK)
 	{
 		RF_SendMsg("Error in RF_TX_START_IT\r\n");
 	}
@@ -75,6 +75,7 @@ void RF_SendMsg(char *format,...)
 	}
 }
 
+
 void RF_Init(void)
 {
 	RF_data.payload_address = &RF_data.telemetrydata[2];
@@ -100,7 +101,9 @@ void RF_GPIOInit(UART_HandleTypeDef *huart)
 {
 	if(huart->Instance == RF_CHANNEL)
 	{
-		GPIO_InitTypeDef gpio_uart;
+		GPIO_InitTypeDef gpio_uart= {0};
+
+		__RF_DMA_ENABLE();
 
 		//	1. enable peripheral clock usartx and gpiox
 		__RF_CLK_ENABLE();
@@ -113,7 +116,28 @@ void RF_GPIOInit(UART_HandleTypeDef *huart)
 		gpio_uart.Alternate = RF_GPIO_AF;
 		HAL_GPIO_Init( RF_GPIO, &gpio_uart);
 
-		//	3. NVIC
+		//	3. DMA init
+		hRF_DMA_TX.Instance 		= DMA1_Stream6;
+		hRF_DMA_TX.Init.Channel 	= DMA_CHANNEL_4;
+		hRF_DMA_TX.Init.Direction 	= DMA_MEMORY_TO_PERIPH;
+		hRF_DMA_TX.Init.PeriphInc 	= DMA_PINC_DISABLE;
+		hRF_DMA_TX.Init.MemInc 		= DMA_MINC_ENABLE;
+		hRF_DMA_TX.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+		hRF_DMA_TX.Init.MemDataAlignment 	= DMA_MDATAALIGN_BYTE;
+		hRF_DMA_TX.Init.Mode 		= DMA_NORMAL;
+		hRF_DMA_TX.Init.Priority 	= DMA_PRIORITY_LOW;
+		hRF_DMA_TX.Init.FIFOMode 	= DMA_FIFOMODE_ENABLE;
+		hRF_DMA_TX.Init.FIFOThreshold = DMA_FIFO_THRESHOLD_FULL;
+		hRF_DMA_TX.Init.MemBurst 	= DMA_MBURST_SINGLE;
+		hRF_DMA_TX.Init.PeriphBurst = DMA_PBURST_SINGLE;
+		if (HAL_DMA_Init(&hRF_DMA_TX) != HAL_OK)
+		{
+			Error_Handler();
+		}
+
+		__HAL_LINKDMA(huart,hdmatx,hRF_DMA_TX);
+
+		//	4. NVIC
 		__RF_NVIC_ENABLE();
 	}
 

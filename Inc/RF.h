@@ -19,14 +19,23 @@
 #define RF_TXPIN					GPIO_PIN_5
 #define RF_RXPIN					GPIO_PIN_6
 #define RF_GPIO_AF        			GPIO_AF7_USART2
+
 #define __RF_CLK_ENABLE()   		do { \
 											__HAL_RCC_USART2_CLK_ENABLE(); \
 											__HAL_RCC_GPIOD_CLK_ENABLE(); \
 										} while(0U)
-#define __RF_NVIC_ENABLE()   		do { \
-											HAL_NVIC_SetPriority(USART2_IRQn, 10, 0); \
-											HAL_NVIC_EnableIRQ(USART2_IRQn); \
+
+#define __RF_NVIC_ENABLE()   		do { 												\
+											HAL_NVIC_SetPriority(USART2_IRQn, 10, 0); 	\
+											HAL_NVIC_EnableIRQ(USART2_IRQn); 			\
 										} while(0U)
+
+#define __RF_DMA_ENABLE()			do { \
+											__HAL_RCC_DMA1_CLK_ENABLE(); 					\
+											HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 0, 0); 	\
+											HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn); 			\
+										} while(0U)
+
 
 #define RF_DATASIZE					60
 #define RF_DATAPAYLOADSIZE			56
@@ -57,6 +66,6 @@ void RF_SendTelemetryDATA(void);
 uint16_t RF_CalculateCRC(void);
 
 UART_HandleTypeDef hRF;
-
+DMA_HandleTypeDef hRF_DMA_TX;
 
 #endif /* INC_RF_H_ */
