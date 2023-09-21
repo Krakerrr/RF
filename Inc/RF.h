@@ -51,7 +51,6 @@ typedef enum
 typedef struct
 {
 	uint8_t                 telemetrydata[RF_DATASIZE];
-	uint8_t*				payload_address;
 	RF_TXstatus_ENUM		TXstatus;
 }sRF;
 

@@ -46,7 +46,7 @@ void RF_TxCpltCallback(UART_HandleTypeDef *huart)
 
 void RF_TX_START_IT()
 {
-	if( HAL_UART_Transmit_DMA(&hRF, (&RF_data)->telemetrydata, RF_DATASIZE) != HAL_OK)
+	if( HAL_UART_Transmit_DMA(&hRF, (uint8_t*)&(RF_data.telemetrydata), RF_DATASIZE) != HAL_OK)
 	{
 		RF_SendMsg("Error in RF_TX_START_IT\r\n");
 	}
@@ -78,7 +78,6 @@ void RF_SendMsg(char *format,...)
 
 void RF_Init(void)
 {
-	RF_data.payload_address = &RF_data.telemetrydata[2];
 	RF_data.TXstatus = TX_completed;
 
 	hRF.Instance 			= RF_CHANNEL;
