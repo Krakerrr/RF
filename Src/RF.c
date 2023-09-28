@@ -22,6 +22,7 @@ void RF_SendTelemetryDATA()
 		RF_data.telemetrydata[RF_DATASIZE-1] = (uint8_t) (CRCval >> 8);
 
 		// send data
+		RF_data.TXstatus = TX_started;
 		RF_TX_START_IT();
 	}
 }
@@ -48,9 +49,8 @@ void RF_TX_START_IT()
 {
 	if( HAL_UART_Transmit_DMA(&hRF, (uint8_t*)&(RF_data.telemetrydata), RF_DATASIZE) != HAL_OK)
 	{
-		RF_SendMsg("Error in RF_TX_START_IT\r\n");
+		RF_data.SendFailedCounter++;
 	}
-	RF_data.TXstatus = TX_started;
 }
 
 void RF_SendMsg(char *format,...)
@@ -71,7 +71,7 @@ void RF_SendMsg(char *format,...)
 	str_size = strlen(str);
 	if( HAL_UART_Transmit(&hRF,(uint8_t *)str, str_size, (uint32_t)(str_size/10 + 2 )) != HAL_OK)
 	{
-		Error_Handler();
+//		Error_Handler();
 	}
 }
 
@@ -79,6 +79,7 @@ void RF_SendMsg(char *format,...)
 void RF_Init(void)
 {
 	RF_data.TXstatus = TX_completed;
+	RF_data.SendFailedCounter = 0;
 
 	hRF.Instance 			= RF_CHANNEL;
 	hRF.Init.BaudRate		= RF_BAUDRATE;
@@ -90,8 +91,7 @@ void RF_Init(void)
 	hRF.Init.OverSampling 	= UART_OVERSAMPLING_8;
 	if ( HAL_UART_Init(&hRF) != HAL_OK )
 	{
-		//TODO: remove error handler
-		Error_Handler();
+		Error_Handler(E_RFInit);
 	}
 }
 
@@ -131,7 +131,7 @@ void RF_GPIOInit(UART_HandleTypeDef *huart)
 		hRF_DMA_TX.Init.PeriphBurst = DMA_PBURST_SINGLE;
 		if (HAL_DMA_Init(&hRF_DMA_TX) != HAL_OK)
 		{
-			Error_Handler();
+			Error_Handler(E_RFDMAInit);
 		}
 
 		__HAL_LINKDMA(huart,hdmatx,hRF_DMA_TX);

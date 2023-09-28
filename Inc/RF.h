@@ -52,6 +52,7 @@ typedef struct
 {
 	uint8_t                 telemetrydata[RF_DATASIZE];
 	RF_TXstatus_ENUM		TXstatus;
+	uint32_t				SendFailedCounter;
 }sRF;
 
 extern sRF RF_data;
